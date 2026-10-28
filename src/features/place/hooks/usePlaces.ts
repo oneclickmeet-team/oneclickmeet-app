@@ -40,7 +40,8 @@ export function usePlace(id: PlaceId | null) {
 }
 
 export function useCandidateSearch(params: CandidateSearchParams, enabled = true) {
-  const hasInput = Boolean(params.query?.trim()) || params.regionId !== undefined;
+  const hasInput =
+    Boolean(params.query?.trim()) || params.regionId !== undefined || params.latitude !== undefined;
   return useQuery({
     queryKey: placeKeys.candidates(params),
     queryFn: () => placeApi.searchCandidates({ size: 15, ...params }),

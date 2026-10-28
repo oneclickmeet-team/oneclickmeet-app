@@ -1,6 +1,7 @@
 // P01~P09 mock. 후보 장소는 데모 지역 6곳 주변의 가상 장소다(실제 가게 아님).
 import type {
   CandidateSearchParams,
+  CategoryCode,
   CandidateSearchResponse,
   PageResponse,
   PlaceCandidate,
@@ -17,7 +18,7 @@ import type {
 import { badRequest, delay, fail, nowIso, requireMemberId } from './core';
 import { db, saveDb, type MockPlace } from './db';
 
-const REGIONS: (Region & { latitude: number; longitude: number })[] = [
+export const REGIONS: (Region & { latitude: number; longitude: number })[] = [
   { regionId: 'HANSUNG', name: '한성대입구역', latitude: 37.5884, longitude: 127.006 },
   { regionId: 'SUNGSHIN', name: '성신여대역', latitude: 37.5926, longitude: 127.0164 },
   { regionId: 'HYEHWA', name: '혜화', latitude: 37.5822, longitude: 127.0019 },
@@ -26,23 +27,30 @@ const REGIONS: (Region & { latitude: number; longitude: number })[] = [
   { regionId: 'JAMSIL', name: '잠실', latitude: 37.5133, longitude: 127.1001 },
 ];
 
-// [이름 뒤에 붙일 말, 카테고리, 위도 오프셋, 경도 오프셋] (오프셋 0.001 ≈ 100m)
-const TEMPLATES: [string, string, number, number][] = [
-  ['소금빵 카페', '카페', 0.0012, 0.0008],
-  ['루프탑 카페', '카페', -0.0015, 0.0021],
-  ['파스타 식당', '음식점', 0.0021, -0.0011],
-  ['돈카츠', '음식점', -0.0008, -0.0019],
-  ['수제버거', '음식점', 0.0031, 0.0015],
-  ['와인바', '술집', -0.0024, 0.0006],
-  ['소품샵', '쇼핑', 0.0006, 0.0032],
-  ['보드게임 카페', '놀거리', -0.0033, -0.0007],
-  ['작은 전시관', '문화', 0.0017, -0.0028],
-  ['산책길', '산책', -0.0011, 0.0037],
+// [이름 뒤에 붙일 말, 표시 카테고리, 추천 코드, 위도 오프셋, 경도 오프셋] (오프셋 0.001 ≈ 100m)
+const TEMPLATES: [string, string, CategoryCode, number, number][] = [
+  ['소금빵 카페', '카페', 'CAFE', 0.0012, 0.0008],
+  ['루프탑 카페', '카페', 'CAFE', -0.0015, 0.0021],
+  ['디저트 카페', '카페', 'CAFE', 0.0004, -0.0016],
+  ['파스타 식당', '음식점', 'MEAL', 0.0021, -0.0011],
+  ['돈카츠', '음식점', 'MEAL', -0.0008, -0.0019],
+  ['수제버거', '음식점', 'MEAL', 0.0026, 0.0012],
+  ['와인바', '술집', 'BAR', -0.0021, 0.0006],
+  ['이자카야', '술집', 'BAR', 0.0009, 0.0024],
+  ['소품샵', '쇼핑', 'SHOPPING', 0.0006, 0.0028],
+  ['편집숍', '쇼핑', 'SHOPPING', -0.0017, -0.0004],
+  ['보드게임 카페', '놀거리', 'ACTIVITY', -0.0026, -0.0007],
+  ['반지 공방', '놀거리', 'ACTIVITY', 0.0015, -0.0024],
+  ['작은 전시관', '문화', 'CULTURE', 0.0017, -0.0006],
+  ['독립 서점', '문화', 'CULTURE', -0.0005, 0.0015],
+  ['산책길', '산책', 'WALK', -0.0011, 0.0029],
+  ['동네 공원', '산책', 'WALK', 0.0024, 0.0003],
 ];
 
-const CATALOG: (PlaceCandidate & { regionId: RegionId })[] = REGIONS.flatMap((r) =>
-  TEMPLATES.map(([suffix, category, dLat, dLng], i) => ({
+export const CATALOG: (PlaceCandidate & { regionId: RegionId; code: CategoryCode })[] = REGIONS.flatMap((r) =>
+  TEMPLATES.map(([suffix, category, code, dLat, dLng], i) => ({
     regionId: r.regionId,
+    code,
     name: `${r.name} ${suffix}`,
     address: `서울 (가상 주소) ${r.name} ${i + 1}번지`,
     latitude: Number((r.latitude + dLat).toFixed(6)),
@@ -68,7 +76,7 @@ function paginate<T>(all: T[], page = 0, size = 20): PageResponse<T> {
   return { items: all.slice(start, start + size), page, size, hasNext: start + size < all.length };
 }
 
-function stripRegion<T extends { regionId: RegionId }>({ regionId: _r, ...rest }: T) {
+function stripRegion({ regionId: _r, code: _c, ...rest }: (typeof CATALOG)[number]): PlaceCandidate {
   return rest;
 }
 
@@ -90,7 +98,7 @@ function validatePlaceInput(input: PlaceInput) {
   }
 }
 
-function toResponse({ ownerId: _o, ...rest }: MockPlace): PlaceResponse {
+function toResponse({ ownerId: _o, categoryCode: _c, ...rest }: MockPlace): PlaceResponse {
   return rest;
 }
 
@@ -215,6 +223,8 @@ export const mockPlaces = {
       sourceSharedPlaceId: null,
       createdAt: now,
       updatedAt: now,
+      // mock 전용: 가상 후보에서 저장했으면 그 카테고리를 기억해 둔다.
+      categoryCode: CATALOG.find((c) => c.name === input.name.trim())?.code ?? null,
     };
     store.nextPlaceId += 1;
     store.places.push(place);

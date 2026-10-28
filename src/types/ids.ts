@@ -10,3 +10,5 @@ export type PlaceId = Brand<number, 'PlaceId'>;
 export type SharedPlaceId = Brand<number, 'SharedPlaceId'>;
 export type CourseId = Brand<number, 'CourseId'>;
 export type SharedCourseId = Brand<number, 'SharedCourseId'>;
+export type CoursePlaceId = Brand<number, 'CoursePlaceId'>;
+export type CourseItemId = Brand<number, 'CourseItemId'>;

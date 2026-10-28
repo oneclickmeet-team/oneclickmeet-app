@@ -13,6 +13,8 @@ interface CandidateListProps {
   savingName?: string | null;
   onSave: (candidate: Candidate) => void;
   emptyText?: string;
+  /** 버튼 글자. 기본은 "저장" */
+  actionLabel?: string;
 }
 
 // 후보는 저장 전 확인용이다(TRD 6.1). 사용자가 고른 것만 저장한다.
@@ -23,6 +25,7 @@ export function CandidateList({
   savingName,
   onSave,
   emptyText = '찾은 장소가 없어요.',
+  actionLabel = '저장',
 }: CandidateListProps) {
   if (loading) {
     return (
@@ -47,7 +50,7 @@ export function CandidateList({
             <Text style={styles.sub}>{c.openingHours ?? '운영시간 확인 필요'}</Text>
           </View>
           <Button
-            title="저장"
+            title={actionLabel}
             variant="secondary"
             loading={savingName === c.name}
             disabled={Boolean(savingName) && savingName !== c.name}

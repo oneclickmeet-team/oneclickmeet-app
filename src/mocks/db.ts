@@ -2,7 +2,7 @@
 // 개발자 설정의 "mock 데이터 초기화"로 지운다.
 import { File, Paths } from 'expo-file-system';
 
-import type { MemberResponse, PlaceResponse } from '@/types/api';
+import type { CategoryCode, CourseResponse, MemberResponse, PlaceResponse } from '@/types/api';
 
 export interface MockAccount {
   email: string;
@@ -12,6 +12,12 @@ export interface MockAccount {
 
 export interface MockPlace extends PlaceResponse {
   ownerId: number;
+  /** TRD 저장 모델에는 없는 값. 추천 mock에서만 쓴다(팀에서 category 필드 추가 논의 중). */
+  categoryCode?: CategoryCode | null;
+}
+
+export interface MockCourse extends CourseResponse {
+  ownerId: number;
 }
 
 interface MockDb {
@@ -19,6 +25,9 @@ interface MockDb {
   accounts: MockAccount[];
   places: MockPlace[];
   nextPlaceId: number;
+  courses: MockCourse[];
+  /** courseId, coursePlaceId, courseItemId 공용 순번 */
+  nextCourseSeq: number;
 }
 
 const DEMO_ACCOUNT: MockAccount = {
@@ -34,7 +43,14 @@ const DEMO_ACCOUNT: MockAccount = {
 };
 
 function initialDb(): MockDb {
-  return { version: 1, accounts: [DEMO_ACCOUNT], places: [], nextPlaceId: 1 };
+  return {
+    version: 1,
+    accounts: [DEMO_ACCOUNT],
+    places: [],
+    nextPlaceId: 1,
+    courses: [],
+    nextCourseSeq: 1,
+  };
 }
 
 const file = () => new File(Paths.document, 'mock-db.json');
@@ -45,7 +61,8 @@ export function db(): MockDb {
   if (cache) return cache;
   try {
     const f = file();
-    cache = f.exists ? (JSON.parse(f.textSync()) as MockDb) : initialDb();
+    // 예전 버전 파일에 없는 필드는 기본값으로 채운다.
+    cache = f.exists ? { ...initialDb(), ...(JSON.parse(f.textSync()) as Partial<MockDb>) } : initialDb();
   } catch {
     cache = initialDb();
   }

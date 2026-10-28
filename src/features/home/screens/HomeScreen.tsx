@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
-import { Placeholder } from '@/components/Placeholder';
 import { Screen } from '@/components/Screen';
 import { PlaceRow } from '@/features/place/components/PlaceRow';
 import { usePlaceList } from '@/features/place/hooks/usePlaces';
@@ -34,7 +33,10 @@ export function HomeScreen() {
         )}
       </View>
 
-      <Placeholder title="코스 추천" milestone="M3" />
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>오늘 어디 갈까요?</Text>
+        <Button title="코스 추천받기" onPress={() => router.push('/courses/builder')} />
+      </View>
     </Screen>
   );
 }

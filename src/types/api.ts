@@ -133,3 +133,108 @@ export interface PlaceResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+// 8 코스 추천 (R01). categorySequence·requiredPlaceOrder·placeCount는 TRD의 제안 필드명이다.
+export type CategoryCode = 'MEAL' | 'CAFE' | 'BAR' | 'ACTIVITY' | 'CULTURE' | 'WALK' | 'SHOPPING';
+
+export type RecommendationAnchor =
+  | { type: 'REGION'; regionId: RegionId }
+  | { type: 'PLACE'; source: 'PERSONAL'; placeId: number }
+  | { type: 'PLACE'; source: 'SHARED'; coupleId: number; sharedPlaceId: number };
+
+export interface RecommendationRequest {
+  anchor: RecommendationAnchor;
+  placeCount: number;
+  categorySequence: CategoryCode[];
+  requiredPlaceOrder?: number;
+  sourceCoupleId?: number;
+}
+
+/** PlaceSnapshot: 코스 안의 장소 정보. 좌표 필수, sourceUrl 없음. */
+export interface PlaceSnapshot {
+  name: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+}
+
+export interface WalkingLeg {
+  fromVisitOrder: number;
+  toVisitOrder: number;
+  estimatedMinutes: number;
+}
+
+export interface RecommendedCourse {
+  candidateKey: string;
+  title: string;
+  places: (PlaceSnapshot & { visitOrder: number })[];
+  walkingLegs: WalkingLeg[];
+}
+
+export interface RecommendationResponse {
+  courses: RecommendedCourse[];
+  reason: 'INSUFFICIENT_PLACES' | 'UNSUPPORTED_REGION' | null;
+  walkingTimeMethod: 'COORDINATE_ESTIMATE';
+}
+
+// 9 코스 저장과 편집
+export interface CourseItemInput {
+  name: string;
+  twoPersonAmount: number | null;
+  isChecked: boolean;
+}
+
+export interface CourseCreateRequest {
+  title: string;
+  places: (PlaceSnapshot & { visitOrder: number; items: CourseItemInput[] })[];
+}
+
+export interface AmountSummary {
+  currency: 'KRW';
+  knownTotalAmount: number;
+  placesWithoutCheckedItems: number;
+  checkedItemsWithoutAmount: number;
+  status: 'EMPTY' | 'PARTIAL' | 'COMPLETE';
+  amountSource: 'USER_INPUT';
+}
+
+export interface CourseItemResponse extends CourseItemInput {
+  courseItemId: number;
+}
+
+export interface CoursePlaceResponse extends PlaceSnapshot {
+  coursePlaceId: number;
+  visitOrder: number;
+  items: CourseItemResponse[];
+  checkedSubtotal: number;
+}
+
+export interface CourseResponse {
+  courseId: number;
+  title: string;
+  sharedCourseId: number | null;
+  sourceSharedCourseId: number | null;
+  places: CoursePlaceResponse[];
+  walkingLegs: WalkingLeg[];
+  walkingTimeMethod: 'COORDINATE_ESTIMATE';
+  amountSummary: AmountSummary;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CourseSummary {
+  courseId: number;
+  title: string;
+  placeCount: number;
+  sharedCourseId: number | null;
+  sourceSharedCourseId: number | null;
+  amountSummary: AmountSummary;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CourseListParams {
+  page?: number;
+  size?: number;
+  query?: string;
+}
