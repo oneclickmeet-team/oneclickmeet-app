@@ -1,4 +1,4 @@
-// A01, A02, A04, A05, M01, M02 mock. 앱을 껐다 켜면 새로 가입한 계정은 사라진다.
+// A01, A02, A04, A05, M01, M02 mock. 계정은 mock 저장소(db.ts)에 남는다.
 // 데모 계정은 항상 있다: demo@oneclickmeet.app / demo1234
 import type {
   LoginRequest,
@@ -9,27 +9,8 @@ import type {
   UpdateMemberRequest,
 } from '@/types/api';
 
+import { db, saveDb } from './db';
 import { badRequest, delay, fail, issueTokens, memberIdFromToken, nowIso, requireMemberId } from './core';
-
-interface MockAccount {
-  email: string;
-  password: string;
-  member: MemberResponse;
-}
-
-const accounts: MockAccount[] = [
-  {
-    email: 'demo@oneclickmeet.app',
-    password: 'demo1234',
-    member: {
-      memberId: 1,
-      displayName: '데모',
-      libraryId: 10,
-      currentCoupleId: null,
-      createdAt: '2026-10-18T08:00:00Z',
-    },
-  },
-];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -44,7 +25,7 @@ function tokenResponse(member: MemberResponse): TokenResponse {
 }
 
 function findById(memberId: number) {
-  return accounts.find((a) => a.member.memberId === memberId);
+  return db().accounts.find((a) => a.member.memberId === memberId);
 }
 
 export const mockAuth = {
@@ -55,10 +36,10 @@ export const mockAuth = {
       badRequest('password', '비밀번호는 8~64자로 입력해 주세요.');
     }
     validateDisplayName(req.displayName);
-    if (accounts.some((a) => a.email === req.email)) {
+    if (db().accounts.some((a) => a.email === req.email)) {
       fail({ status: 409, title: 'Conflict', code: 'AUTH-0409', reason: 'EMAIL_ALREADY_EXISTS' });
     }
-    const nextId = Math.max(...accounts.map((a) => a.member.memberId)) + 1;
+    const nextId = Math.max(...db().accounts.map((a) => a.member.memberId)) + 1;
     const member: MemberResponse = {
       memberId: nextId,
       displayName: req.displayName.trim(),
@@ -66,13 +47,14 @@ export const mockAuth = {
       currentCoupleId: null,
       createdAt: nowIso(),
     };
-    accounts.push({ email: req.email, password: req.password, member });
+    db().accounts.push({ email: req.email, password: req.password, member });
+    saveDb();
     return member;
   },
 
   async login(req: LoginRequest): Promise<TokenResponse> {
     await delay();
-    const account = accounts.find((a) => a.email === req.email && a.password === req.password);
+    const account = db().accounts.find((a) => a.email === req.email && a.password === req.password);
     if (!account) {
       fail({ status: 401, title: 'Unauthorized', code: 'AUTH-0401', reason: 'INVALID_CREDENTIALS' });
     }
@@ -96,7 +78,7 @@ export const mockAuth = {
     await delay(200);
     const account = findById(requireMemberId());
     if (!account) {
-      // 앱 재시작으로 mock 가입 계정이 사라진 경우
+      // mock 데이터를 초기화한 경우
       fail({ status: 401, title: 'Unauthorized', code: 'AUTH-0401', reason: 'TOKEN_EXPIRED' });
     }
     return account.member;
@@ -110,6 +92,7 @@ export const mockAuth = {
       fail({ status: 401, title: 'Unauthorized', code: 'AUTH-0401', reason: 'TOKEN_EXPIRED' });
     }
     account.member = { ...account.member, displayName: req.displayName.trim() };
+    saveDb();
     return account.member;
   },
 };

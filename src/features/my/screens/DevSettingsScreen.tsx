@@ -1,9 +1,11 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { TextField } from '@/components/TextField';
+import { resetDb } from '@/mocks/db';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { colors, fontSize, radius, spacing } from '@/theme';
 
@@ -15,6 +17,20 @@ export function DevSettingsScreen() {
   const [draftUrl, setDraftUrl] = useState(apiBaseUrl);
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<CheckResult>(null);
+  const queryClient = useQueryClient();
+
+  const confirmReset = () =>
+    Alert.alert('mock 데이터 초기화', '가짜 서버에 저장한 장소와 가입한 계정을 모두 지울까요? 데모 계정만 남아요.', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '초기화',
+        style: 'destructive',
+        onPress: () => {
+          resetDb();
+          void queryClient.invalidateQueries();
+        },
+      },
+    ]);
 
   const dirty = draftUrl.trim().replace(/\/+$/, '') !== apiBaseUrl;
 
@@ -54,6 +70,7 @@ export function DevSettingsScreen() {
             trackColor={{ true: colors.primary, false: colors.border }}
           />
         </View>
+        {useMock ? <Button title="mock 데이터 초기화" variant="text" onPress={confirmReset} /> : null}
       </View>
 
       <View style={styles.card}>

@@ -32,6 +32,10 @@ const REASON_MESSAGES: Record<string, string> = {
   TOKEN_EXPIRED: '로그인이 만료됐어요. 다시 로그인해 주세요.',
   INVALID_INPUT: '입력한 내용을 확인해 주세요.',
   TOO_MANY_REQUESTS: '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.',
+  ACTIVE_SHARE_EXISTS: '상대와 공유 중인 장소는 여기서 삭제할 수 없어요. 공유를 먼저 취소해 주세요.',
+  RESOURCE_NOT_FOUND: '찾을 수 없어요. 이미 삭제됐을 수 있어요.',
+  IMAGE_TOO_LARGE: '이미지가 너무 커요. 5MB 이하로 올려 주세요.',
+  UNSUPPORTED_IMAGE_TYPE: 'JPEG, PNG, WebP 이미지만 올릴 수 있어요.',
   PROVIDER_UNAVAILABLE: '외부 서비스가 응답하지 않아요. 잠시 후 다시 시도해 주세요.',
 };
 

@@ -65,7 +65,9 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false, headerTintColor: colors.text }}>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="share-receive" options={{ headerShown: true, title: '공유 받은 내용' }} />
+        <Stack.Screen name="share-receive" options={{ headerShown: true, title: '장소 저장' }} />
+        <Stack.Screen name="place/add" options={{ headerShown: true, title: '장소 추가' }} />
+        <Stack.Screen name="place/[id]" options={{ headerShown: true, title: '장소' }} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="(auth)" />

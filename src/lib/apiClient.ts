@@ -9,9 +9,13 @@ import { ApiError, NetworkError } from './problem';
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
+type QueryValue = string | number | boolean | null | undefined;
+
 interface RequestOptions {
   method?: Method;
+  /** 객체는 JSON으로 보낸다. FormData면 multipart로 보낸다(P04 이미지). */
   body?: unknown;
+  query?: Record<string, QueryValue>;
   /** 인증이 필요 없는 API(A01, A02, A04)는 false */
   auth?: boolean;
   timeoutMs?: number;
@@ -19,20 +23,34 @@ interface RequestOptions {
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 
+function buildQuery(query?: Record<string, QueryValue>) {
+  if (!query) return '';
+  const parts = Object.entries(query)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
+  return parts.length ? `?${parts.join('&')}` : '';
+}
+
 async function rawFetch(path: string, opts: RequestOptions, accessToken: string | null) {
   const baseUrl = useSettingsStore.getState().apiBaseUrl;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
+  const isForm = typeof FormData !== 'undefined' && opts.body instanceof FormData;
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
+  // multipart는 fetch가 boundary를 붙여야 하므로 Content-Type을 직접 넣지 않는다.
+  if (opts.body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
+  let body: BodyInit | undefined;
+  if (isForm) body = opts.body as FormData;
+  else if (opts.body !== undefined) body = JSON.stringify(opts.body);
+
   try {
-    return await fetch(`${baseUrl}${path}`, {
+    return await fetch(`${baseUrl}${path}${buildQuery(opts.query)}`, {
       method: opts.method ?? 'GET',
       headers,
-      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      body,
       signal: controller.signal,
     });
   } catch (e) {

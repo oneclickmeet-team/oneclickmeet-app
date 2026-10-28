@@ -48,3 +48,88 @@ export interface RefreshTokenRequest {
 export interface UpdateMemberRequest {
   displayName: string;
 }
+
+// 2.2 목록 조회
+export interface PageResponse<T> {
+  items: T[];
+  page: number;
+  size: number;
+  hasNext: boolean;
+}
+
+// 6.1 지원 지역과 장소 후보
+export type RegionId = 'JAMSIL' | 'SUNGSHIN' | 'HANSUNG' | 'HYEHWA' | 'SEOCHON' | 'YEONNAM';
+
+export interface Region {
+  regionId: RegionId;
+  name: string;
+}
+
+export interface RegionsResponse {
+  items: Region[];
+}
+
+export interface PlaceCandidate {
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  sourceUrl: string | null;
+  categoryLabel: string | null;
+  openingHours: string | null;
+}
+
+export interface CandidateSearchParams {
+  query?: string;
+  latitude?: number;
+  longitude?: number;
+  regionId?: RegionId;
+  radiusMeters?: number;
+  page?: number;
+  size?: number;
+}
+
+export type CandidateSearchResponse = PageResponse<PlaceCandidate>;
+
+// 6.2 링크와 스크린샷 인식
+export interface RecognitionRequest {
+  sourceUrl?: string | null;
+  sharedText?: string | null;
+}
+
+export interface RecognitionResponse {
+  status: 'CANDIDATES_FOUND' | 'NEEDS_SEARCH';
+  extractedQuery: string | null;
+  candidates: PlaceCandidate[];
+  sourceUrl: string | null;
+  message: string | null;
+}
+
+// 7 개인 장소 보관함
+export interface PlaceListParams {
+  page?: number;
+  size?: number;
+  query?: string;
+  regionId?: RegionId;
+}
+
+export interface PlaceInput {
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  sourceUrl: string | null;
+}
+
+export interface PlaceResponse {
+  placeId: number;
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  sourceUrl: string | null;
+  sharedPlaceId: number | null;
+  sourceSharedPlaceId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
