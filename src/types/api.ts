@@ -368,3 +368,41 @@ export interface CommentCreateRequest {
   targetId: number;
   content: string;
 }
+
+// 12 활동 기록과 알림 (H01~H03)
+export type ActivityActionType =
+  | 'PLACE_SHARED'
+  | 'PLACE_SHARE_REVOKED'
+  | 'PLACE_DELETED'
+  | 'COURSE_SHARED'
+  | 'COURSE_UPDATED'
+  | 'COURSE_SHARE_REVOKED'
+  | 'COURSE_DELETED'
+  | 'COMMENT_CREATED'
+  | 'COUPLE_DISCONNECTED'
+  | 'COUPLE_RECONNECTED';
+
+export interface ActivityResponse {
+  activityId: number;
+  coupleId: number;
+  /** 시스템 처리면 null */
+  actor: CoupleMember | null;
+  actionType: ActivityActionType;
+  /** 관계 사건이면 대상 필드는 null */
+  targetType: CommentTargetType | null;
+  targetId: number | null;
+  targetLabel: string | null;
+  targetAccessible: boolean;
+  occurredAt: string;
+}
+
+export interface NotificationResponse {
+  notificationId: number;
+  type: ActivityActionType;
+  message: string;
+  activityId: number | null;
+  target: { coupleId: number; targetType: CommentTargetType; targetId: number } | null;
+  targetAccessible: boolean;
+  readAt: string | null;
+  createdAt: string;
+}

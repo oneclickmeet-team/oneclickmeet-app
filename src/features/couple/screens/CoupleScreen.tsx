@@ -5,6 +5,7 @@ import { Button } from '@/components/Button';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { Screen } from '@/components/Screen';
 import { TextField } from '@/components/TextField';
+import { ActivityList } from '@/features/activity/components/ActivityList';
 import { colors, fontSize, radius, spacing } from '@/theme';
 import type { Couple, Invitation } from '@/types/model';
 
@@ -34,6 +35,7 @@ export function CoupleScreen() {
       <ErrorBanner error={error} />
       {couple?.status === 'ACTIVE' ? <Connected couple={couple} /> : null}
       {couple?.status === 'GRACE' ? <Grace couple={couple} /> : null}
+      {couple ? <ActivityList coupleId={couple.id} title="최근 활동" /> : null}
       {!couple ? (
         <>
           <View style={styles.card}>

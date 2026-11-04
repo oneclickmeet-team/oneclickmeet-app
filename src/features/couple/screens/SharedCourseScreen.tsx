@@ -5,6 +5,7 @@ import { Button } from '@/components/Button';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { Screen } from '@/components/Screen';
 import { CourseView } from '@/features/course/components/CourseView';
+import { ActivityList } from '@/features/activity/components/ActivityList';
 import { CommentSection, MemoSection } from '@/features/notes/components/NoteSections';
 import { colors, fontSize, radius, spacing } from '@/theme';
 import type { CoupleId, SharedCourseId } from '@/types/ids';
@@ -72,6 +73,12 @@ function SharedCourseView({ shared, coupleId, id }: { shared: SharedCourse; coup
         <>
           <CommentSection coupleId={coupleId} targetType="SHARED_COURSE" targetId={id} readOnly={shared.readOnly} />
           <MemoSection targetType="COURSE" targetId={shared.course.id} />
+          <ActivityList
+            coupleId={coupleId}
+            title="변경 기록"
+            target={{ type: 'SHARED_COURSE', id }}
+            showLabel={false}
+          />
           {shared.readOnly ? null : (
             <>
               <ErrorBanner error={unshare.error} />

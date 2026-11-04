@@ -50,6 +50,8 @@ export function useUpdateCourse(id: CourseId) {
     mutationFn: (req: CourseEditRequest) => courseApi.update(id, req),
     onSuccess: (course) => {
       queryClient.setQueryData(courseKeys.detail(id), course);
+      // 공유 중인 코스면 공동 코스와 활동 기록에도 반영된다.
+      if (course.sharedCourseId !== null) void queryClient.invalidateQueries({ queryKey: ['couples'] });
       return queryClient.invalidateQueries({ queryKey: courseKeys.all });
     },
     // 다른 사람이 먼저 구조를 바꿨으면(409) 최신 코스를 다시 불러온다(TRD 9.3-7).

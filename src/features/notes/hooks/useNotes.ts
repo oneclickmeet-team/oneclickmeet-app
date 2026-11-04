@@ -43,7 +43,11 @@ export function useComments(coupleId: CoupleId, type: CommentTargetType, id: num
 
 export function useCommentMutations(coupleId: CoupleId, type: CommentTargetType, id: number) {
   const queryClient = useQueryClient();
-  const refresh = () => queryClient.invalidateQueries({ queryKey: noteKeys.comments(coupleId, type, id) });
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: noteKeys.comments(coupleId, type, id) }),
+      queryClient.invalidateQueries({ queryKey: ['couples', coupleId, 'activities'] }),
+    ]);
   return {
     create: useMutation({
       mutationFn: (content: string) => commentApi.create(coupleId, type, id, content),

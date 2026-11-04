@@ -4,6 +4,7 @@ import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native
 import { Button } from '@/components/Button';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { Screen } from '@/components/Screen';
+import { ActivityList } from '@/features/activity/components/ActivityList';
 import { CommentSection, MemoSection } from '@/features/notes/components/NoteSections';
 import { colors, fontSize, radius, spacing } from '@/theme';
 import type { CoupleId, SharedPlaceId } from '@/types/ids';
@@ -61,6 +62,7 @@ export function SharedPlaceScreen() {
 
       <CommentSection coupleId={coupleId} targetType="SHARED_PLACE" targetId={id} readOnly={s.readOnly} />
       <MemoSection targetType="PLACE" targetId={p.id} />
+      <ActivityList coupleId={coupleId} title="기록" target={{ type: 'SHARED_PLACE', id }} showLabel={false} />
 
       {!s.readOnly ? (
         <>

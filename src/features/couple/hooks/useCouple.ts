@@ -26,6 +26,7 @@ function useRefreshAll() {
       queryClient.invalidateQueries({ queryKey: ['place'] }),
       queryClient.invalidateQueries({ queryKey: ['courses'] }),
       queryClient.invalidateQueries({ queryKey: ['course'] }),
+      queryClient.invalidateQueries({ queryKey: ['notifications'] }),
     ]);
 }
 
@@ -146,6 +147,7 @@ export function useEditSharedCourse(coupleId: CoupleId, id: SharedCourseId) {
     onSuccess: (shared) => {
       queryClient.setQueryData(coupleKeys.sharedCourse(coupleId, id), shared);
       void queryClient.invalidateQueries({ queryKey: coupleKeys.sharedCourses(coupleId) });
+      void queryClient.invalidateQueries({ queryKey: ['couples', coupleId, 'activities'] });
       // 공유한 사람의 개인 코스에도 반영되므로 개인 목록도 다시 불러온다.
       void queryClient.invalidateQueries({ queryKey: ['courses'] });
       void queryClient.invalidateQueries({ queryKey: ['course'] });

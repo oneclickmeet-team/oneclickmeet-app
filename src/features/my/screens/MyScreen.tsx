@@ -38,6 +38,7 @@ export function MyScreen() {
 
       <View style={styles.card}>
         <Text style={styles.section}>설정</Text>
+        <Button title="알림" variant="secondary" onPress={() => router.push('/notifications')} />
         <Button
           title="개발자 설정 (서버 주소, mock)"
           variant="secondary"

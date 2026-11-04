@@ -3,6 +3,7 @@
 import { File, Paths } from 'expo-file-system';
 
 import type {
+  ActivityActionType,
   CategoryCode,
   CommentResponse,
   CourseResponse,
@@ -75,6 +76,31 @@ interface MockDb {
   comments: (Omit<CommentResponse, 'author'> & { authorId: number })[];
   /** memoId, commentId 공용 순번 */
   nextNoteSeq: number;
+  activities: MockActivity[];
+  notifications: MockNotification[];
+  /** activityId, notificationId 공용 순번 */
+  nextActivitySeq: number;
+}
+
+export interface MockActivity {
+  activityId: number;
+  coupleId: number;
+  actorId: number | null;
+  actionType: ActivityActionType;
+  targetType: 'SHARED_PLACE' | 'SHARED_COURSE' | null;
+  targetId: number | null;
+  targetLabel: string | null;
+  occurredAt: string;
+}
+
+export interface MockNotification {
+  notificationId: number;
+  recipientId: number;
+  activityId: number;
+  type: ActivityActionType;
+  message: string;
+  readAt: string | null;
+  createdAt: string;
 }
 
 export const DEMO_ACCOUNT: MockAccount = {
@@ -118,6 +144,9 @@ function initialDb(): MockDb {
     memos: [],
     comments: [],
     nextNoteSeq: 1,
+    activities: [],
+    notifications: [],
+    nextActivitySeq: 1,
   };
 }
 

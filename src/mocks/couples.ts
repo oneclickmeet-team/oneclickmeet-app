@@ -16,6 +16,7 @@ import type {
 } from '@/types/api';
 
 import { badRequest, delay, fail, nowIso, requireMemberId } from './core';
+import { recordActivity } from './activity';
 import { applyCourseEdit, toCourseResponse } from './courses';
 import { db, partnerAccount, saveDb, type MockCouple, type MockShared } from './db';
 import { toPlaceResponse } from './places';
@@ -263,6 +264,7 @@ function disconnect(actorId: number, coupleId: number): DisconnectionResponse {
   }
   couple.status = 'GRACE';
   couple.disconnectedAt = nowIso();
+  recordActivity(couple.coupleId, actorId, 'COUPLE_DISCONNECTED');
   couple.graceExpiresAt = new Date(Date.now() + GRACE_DAYS * 86400_000).toISOString();
   setCurrentCouple(couple.memberIds, null);
   saveDb();
@@ -286,6 +288,7 @@ function reconnect(actorId: number, coupleId: number, code: string): CoupleRespo
   couple.graceExpiresAt = null;
   inv.usedAt = nowIso();
   setCurrentCouple(couple.memberIds, couple.coupleId);
+  recordActivity(couple.coupleId, actorId, 'COUPLE_RECONNECTED');
   saveDb();
   return toCouple(couple);
 }
@@ -358,6 +361,7 @@ function sharePlace(actorId: number, coupleId: number, placeId: number): SharedP
   };
   db().sharedPlaces.push(s);
   place.sharedPlaceId = s.sharedId;
+  recordActivity(coupleId, actorId, 'PLACE_SHARED', { targetType: 'SHARED_PLACE', targetId: s.sharedId, label: place.name });
   saveDb();
   return toSharedPlace(s, couple);
 }
@@ -376,6 +380,7 @@ function shareCourse(actorId: number, coupleId: number, courseId: number): Share
   };
   db().sharedCourses.push(s);
   course.sharedCourseId = s.sharedId;
+  recordActivity(coupleId, actorId, 'COURSE_SHARED', { targetType: 'SHARED_COURSE', targetId: s.sharedId, label: course.title });
   saveDb();
   return toSharedCourse(s, couple);
 }
@@ -450,11 +455,17 @@ export const mockShared = {
   // S04
   async unsharePlace(coupleId: number, sharedPlaceId: number, scope: UnshareScope): Promise<void> {
     await delay();
-    writableCouple(requireMemberId(), coupleId);
+    const me = requireMemberId();
+    writableCouple(me, coupleId);
     const s = findShare(db().sharedPlaces, coupleId, sharedPlaceId);
     s.canceledAt = nowIso();
     const store = db();
     const body = store.places.find((p) => p.placeId === s.contentId);
+    recordActivity(coupleId, me, scope === 'PERSONAL_AND_SHARED' ? 'PLACE_DELETED' : 'PLACE_SHARE_REVOKED', {
+      targetType: 'SHARED_PLACE',
+      targetId: sharedPlaceId,
+      label: body?.name ?? '장소',
+    });
     if (body) {
       body.sharedPlaceId = null;
       if (scope === 'PERSONAL_AND_SHARED' || body.ownerId === null) {
@@ -487,20 +498,29 @@ export const mockShared = {
   // S08: 두 사람 모두 공동 코스를 편집할 수 있다(ACTIVE일 때만)
   async editCourse(coupleId: number, sharedCourseId: number, req: CourseEditRequest): Promise<SharedCourseResponse> {
     await delay();
-    const couple = writableCouple(requireMemberId(), coupleId);
+    const me = requireMemberId();
+    const couple = writableCouple(me, coupleId);
     const s = findShare(db().sharedCourses, coupleId, sharedCourseId);
     const course = db().courses.find((c) => c.courseId === s.contentId) ?? notFound();
     applyCourseEdit(course, req);
+    recordActivity(coupleId, me, 'COURSE_UPDATED', { targetType: 'SHARED_COURSE', targetId: sharedCourseId, label: course.title });
+    saveDb();
     return toSharedCourse(s, couple);
   },
   // S09
   async unshareCourse(coupleId: number, sharedCourseId: number, scope: UnshareScope): Promise<void> {
     await delay();
-    writableCouple(requireMemberId(), coupleId);
+    const me = requireMemberId();
+    writableCouple(me, coupleId);
     const s = findShare(db().sharedCourses, coupleId, sharedCourseId);
     s.canceledAt = nowIso();
     const store = db();
     const body = store.courses.find((c) => c.courseId === s.contentId);
+    recordActivity(coupleId, me, scope === 'PERSONAL_AND_SHARED' ? 'COURSE_DELETED' : 'COURSE_SHARE_REVOKED', {
+      targetType: 'SHARED_COURSE',
+      targetId: sharedCourseId,
+      label: body?.title ?? '코스',
+    });
     if (body) {
       body.sharedCourseId = null;
       if (scope === 'PERSONAL_AND_SHARED' || body.ownerId === null) {

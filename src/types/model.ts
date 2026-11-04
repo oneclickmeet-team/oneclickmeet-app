@@ -182,3 +182,24 @@ export interface Comment {
   createdAt: string;
   edited: boolean;
 }
+
+// ---- 활동 기록·알림
+export interface ActivityItem {
+  id: number;
+  actorName: string | null;
+  mine: boolean;
+  text: string;
+  targetLabel: string | null;
+  accessible: boolean;
+  occurredAt: string;
+}
+
+export interface NotificationItem {
+  id: number;
+  message: string;
+  /** 눌렀을 때 이동할 경로. 대상이 없거나 볼 수 없으면 null */
+  href: `/couples/${number}/places/${number}` | `/couples/${number}/courses/${number}` | null;
+  hasTarget: boolean;
+  read: boolean;
+  createdAt: string;
+}

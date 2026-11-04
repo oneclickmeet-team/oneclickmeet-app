@@ -25,6 +25,7 @@ import type {
 } from '@/types/api';
 
 import { badRequest, delay, fail, nowIso, requireMemberId } from './core';
+import { recordActivity } from './activity';
 import { db, saveDb, type MockCourse } from './db';
 import { CATALOG, REGIONS } from './places';
 
@@ -410,7 +411,20 @@ export const mockCourses = {
   // T04
   async update(courseId: number, req: CourseEditRequest): Promise<CourseResponse> {
     await delay();
-    return applyCourseEdit(findOwned(courseId), req);
+    const course = findOwned(courseId);
+    const res = applyCourseEdit(course, req);
+    if (course.sharedCourseId !== null) {
+      const share = db().sharedCourses.find((x) => x.sharedId === course.sharedCourseId && !x.canceledAt);
+      if (share) {
+        recordActivity(share.coupleId, requireMemberId(), 'COURSE_UPDATED', {
+          targetType: 'SHARED_COURSE',
+          targetId: share.sharedId,
+          label: course.title,
+        });
+        saveDb();
+      }
+    }
+    return res;
   },
 
   // T01

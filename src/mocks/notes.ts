@@ -12,10 +12,22 @@ import type {
 } from '@/types/api';
 
 import { badRequest, delay, fail, nowIso, requireMemberId } from './core';
+import { recordActivity } from './activity';
 import { bodyVisibleViaShare, checkCommentTarget, memberName } from './couples';
 import { db, partnerAccount, saveDb } from './db';
 
 const MEMO_MAX = 5000;
+
+/** 첨언 대상의 활동 기록용 라벨 */
+function targetOf(targetType: 'SHARED_PLACE' | 'SHARED_COURSE', targetId: number) {
+  const store = db();
+  const share = (targetType === 'SHARED_PLACE' ? store.sharedPlaces : store.sharedCourses).find((s) => s.sharedId === targetId);
+  const label =
+    targetType === 'SHARED_PLACE'
+      ? store.places.find((p) => p.placeId === share?.contentId)?.name
+      : store.courses.find((c) => c.courseId === share?.contentId)?.title;
+  return { targetType, targetId, label: label ?? '' };
+}
 const COMMENT_MAX = 2000;
 
 const notFound = (): never =>
@@ -132,6 +144,7 @@ export const mockComments = {
     const now = nowIso();
     const c = { ...req, content: req.content.trim(), coupleId, commentId: db().nextNoteSeq++, authorId: me, createdAt: now, updatedAt: now };
     db().comments.push(c);
+    recordActivity(coupleId, me, 'COMMENT_CREATED', { ...targetOf(req.targetType, req.targetId) });
     saveDb();
     return toComment(c);
   },
@@ -174,6 +187,7 @@ export function partnerCommentOnLatest(): string {
       : null;
   if (!target) return '공유된 장소나 코스가 없어요. 먼저 하나 공유해 주세요.';
   const now = nowIso();
+  recordActivity(couple.coupleId, partnerId, 'COMMENT_CREATED', targetOf(target.targetType, target.targetId));
   store.comments.push({
     coupleId: couple.coupleId,
     ...target,
