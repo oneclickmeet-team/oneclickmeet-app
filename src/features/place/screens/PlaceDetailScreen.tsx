@@ -1,16 +1,19 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Alert, Linking, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { ErrorBanner } from '@/components/ErrorBanner';
+import { MiniButton } from '@/components/MiniButton';
 import { Screen } from '@/components/Screen';
+import { TextField } from '@/components/TextField';
 import { useCurrentCouple, useSharePlace } from '@/features/couple/hooks/useCouple';
 import { MemoSection } from '@/features/notes/components/NoteSections';
 import { colors, fontSize, radius, spacing } from '@/theme';
 import type { PlaceId } from '@/types/ids';
 import type { Place } from '@/types/model';
 
-import { useDeletePlace, usePlace } from '../hooks/usePlaces';
+import { useDeletePlace, usePlace, useUpdatePlace } from '../hooks/usePlaces';
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -60,14 +63,7 @@ export function PlaceDetailScreen() {
   const p = place.data;
   return (
     <Screen edges={[]}>
-      <View style={styles.card}>
-        <Text style={styles.name}>{p.name}</Text>
-        <Text style={styles.sub}>{p.address ?? '주소 없음'}</Text>
-        {p.coords ? null : (
-          <Text style={styles.warn}>위치 정보가 없어서 코스 추천 기준 장소로는 쓸 수 없어요.</Text>
-        )}
-        <Text style={styles.meta}>저장한 날 {formatDate(p.createdAt)}</Text>
-      </View>
+      <InfoCard place={p} />
 
       {p.sourceUrl ? (
         <Button
@@ -83,6 +79,68 @@ export function PlaceDetailScreen() {
       <ErrorBanner error={remove.error} />
       <Button title="보관함에서 삭제" variant="text" loading={remove.isPending} onPress={confirmDelete} />
     </Screen>
+  );
+}
+
+// 장소 기본 정보 보기 + 이름·주소 수정(P08). 좌표는 바꾸지 않는다(위치를 바꾸려면 다시 검색해서 저장).
+function InfoCard({ place: p }: { place: Place }) {
+  const update = useUpdatePlace(p.id);
+  const [draft, setDraft] = useState<{ name: string; address: string } | null>(null);
+  const nameInvalid = draft !== null && (draft.name.trim().length === 0 || draft.name.length > 255);
+
+  if (draft) {
+    return (
+      <View style={styles.card}>
+        <TextField
+          label="장소 이름"
+          value={draft.name}
+          onChangeText={(name) => setDraft({ ...draft, name })}
+          maxLength={255}
+          error={nameInvalid ? '이름을 입력해 주세요.' : undefined}
+        />
+        <TextField
+          label="주소 (선택)"
+          value={draft.address}
+          onChangeText={(address) => setDraft({ ...draft, address })}
+          maxLength={500}
+        />
+        {p.sharedPlaceId !== null ? <Text style={styles.meta}>공유 중이라 상대 화면에도 바로 반영돼요.</Text> : null}
+        <ErrorBanner error={update.error} />
+        <View style={styles.editRow}>
+          <MiniButton
+            label="취소"
+            onPress={() => {
+              setDraft(null);
+              update.reset();
+            }}
+          />
+          <MiniButton
+            label={update.isPending ? '저장 중…' : '저장'}
+            disabled={nameInvalid || update.isPending}
+            onPress={() =>
+              update.mutate(
+                { name: draft.name.trim(), address: draft.address.trim() || null },
+                { onSuccess: () => setDraft(null) },
+              )
+            }
+          />
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.editRow}>
+        <Text style={[styles.name, { flex: 1 }]}>{p.name}</Text>
+        <MiniButton label="수정" onPress={() => setDraft({ name: p.name, address: p.address ?? '' })} />
+      </View>
+      <Text style={styles.sub}>{p.address ?? '주소 없음'}</Text>
+      {p.coords ? null : (
+        <Text style={styles.warn}>위치 정보가 없어서 코스 추천 기준 장소로는 쓸 수 없어요.</Text>
+      )}
+      <Text style={styles.meta}>저장한 날 {formatDate(p.createdAt)}</Text>
+    </View>
   );
 }
 
@@ -132,6 +190,7 @@ const styles = StyleSheet.create({
   sub: { fontSize: fontSize.body, color: colors.textSub },
   warn: { fontSize: fontSize.caption, color: colors.warning },
   meta: { fontSize: fontSize.caption, color: colors.textSub },
+  editRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: spacing.sm },
   shareBox: { backgroundColor: colors.primarySoft, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
   shareText: { fontSize: fontSize.caption, fontWeight: '700', color: colors.primary },
 });

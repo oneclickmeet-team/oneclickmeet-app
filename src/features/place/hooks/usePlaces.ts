@@ -66,6 +66,19 @@ export function useCreatePlace() {
   });
 }
 
+export function useUpdatePlace(id: PlaceId) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Partial<PlaceInput>) => placeApi.update(id, input),
+    onSuccess: (place) => {
+      queryClient.setQueryData(placeKeys.detail(id), place);
+      void queryClient.invalidateQueries({ queryKey: placeKeys.all });
+      // 공유 중이면 공동 보관함에도 반영된다(TRD 7.1).
+      if (place.sharedPlaceId !== null) void queryClient.invalidateQueries({ queryKey: ['couples'] });
+    },
+  });
+}
+
 export function useDeletePlace() {
   const queryClient = useQueryClient();
   return useMutation({

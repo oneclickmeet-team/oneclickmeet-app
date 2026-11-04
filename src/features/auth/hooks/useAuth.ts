@@ -65,8 +65,14 @@ export function useMe() {
 
 export function useUpdateMe() {
   const queryClient = useQueryClient();
+  const setMember = useAuthStore((s) => s.setMember);
   return useMutation({
     mutationFn: (req: UpdateMemberRequest) => authApi.updateMe(req),
-    onSuccess: (member) => queryClient.setQueryData(meQueryKey, member),
+    onSuccess: (member) => {
+      queryClient.setQueryData(meQueryKey, member);
+      setMember(member);
+      // 커플 화면·공동 기록에 보이는 이름도 바뀐다.
+      return queryClient.invalidateQueries({ queryKey: ['couples'] });
+    },
   });
 }
