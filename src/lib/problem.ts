@@ -47,6 +47,7 @@ const REASON_MESSAGES: Record<string, string> = {
   COUPLE_CLOSED: '종료된 관계예요. 공동 기록은 더 볼 수 없어요.',
   SHARED_READ_ONLY: '연결 해제 유예 중에는 공동 기록을 바꿀 수 없어요.',
   ALREADY_SHARED: '이미 공유한 항목이에요.',
+  AUTHOR_ONLY: '내가 쓴 글만 고치거나 지울 수 있어요.',
   PROVIDER_UNAVAILABLE: '외부 서비스가 응답하지 않아요. 잠시 후 다시 시도해 주세요.',
 };
 

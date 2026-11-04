@@ -4,6 +4,7 @@ import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native
 import { Button } from '@/components/Button';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { Screen } from '@/components/Screen';
+import { CommentSection, MemoSection } from '@/features/notes/components/NoteSections';
 import { colors, fontSize, radius, spacing } from '@/theme';
 import type { CoupleId, SharedPlaceId } from '@/types/ids';
 
@@ -13,7 +14,7 @@ import { useCurrentCouple, useSharedPlace, useUnsharePlace } from '../hooks/useC
 
 const toId = <T,>(v: string | undefined) => (Number(v) > 0 ? (Number(v) as T) : null);
 
-// 공동 장소 상세(S03) + 공유 취소(S04). 메모·첨언은 다음 단계에서 붙인다.
+// 공동 장소 상세(S03) + 첨언(N06~N09) + 내 메모(N01~N05) + 공유 취소(S04)
 export function SharedPlaceScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ coupleId: string; sharedPlaceId: string }>();
@@ -58,10 +59,8 @@ export function SharedPlaceScreen() {
         <Button title="원본 링크 열기" variant="secondary" onPress={() => void Linking.openURL(p.sourceUrl!)} />
       ) : null}
 
-      <View style={styles.card}>
-        <Text style={styles.section}>메모 · 같이 남기는 말</Text>
-        <Text style={styles.sub}>다음 단계에서 붙여요.</Text>
-      </View>
+      <CommentSection coupleId={coupleId} targetType="SHARED_PLACE" targetId={id} readOnly={s.readOnly} />
+      <MemoSection targetType="PLACE" targetId={p.id} />
 
       {!s.readOnly ? (
         <>
@@ -102,5 +101,4 @@ const styles = StyleSheet.create({
   name: { fontSize: fontSize.heading, fontWeight: '800', color: colors.text },
   sub: { fontSize: fontSize.body, color: colors.textSub },
   warn: { fontSize: fontSize.caption, color: colors.warning },
-  section: { fontSize: fontSize.caption, fontWeight: '700', color: colors.textSub },
 });

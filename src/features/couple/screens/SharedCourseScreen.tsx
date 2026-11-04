@@ -5,6 +5,7 @@ import { Button } from '@/components/Button';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { Screen } from '@/components/Screen';
 import { CourseView } from '@/features/course/components/CourseView';
+import { CommentSection, MemoSection } from '@/features/notes/components/NoteSections';
 import { colors, fontSize, radius, spacing } from '@/theme';
 import type { CoupleId, SharedCourseId } from '@/types/ids';
 import type { SharedCourse } from '@/types/model';
@@ -15,7 +16,7 @@ import { useCurrentCouple, useEditSharedCourse, useSharedCourse, useUnshareCours
 
 const toId = <T,>(v: string | undefined) => (Number(v) > 0 ? (Number(v) as T) : null);
 
-// 공동 코스 상세(S07) + 두 사람 모두 편집(S08) + 공유 취소(S09)
+// 공동 코스 상세(S07) + 두 사람 모두 편집(S08) + 첨언·메모 + 공유 취소(S09)
 export function SharedCourseScreen() {
   const params = useLocalSearchParams<{ coupleId: string; sharedCourseId: string }>();
   const coupleId = toId<CoupleId>(params.coupleId);
@@ -68,24 +69,28 @@ function SharedCourseView({ shared, coupleId, id }: { shared: SharedCourse; coup
         </>
       }
       footer={
-        shared.readOnly ? null : (
-          <>
-            <ErrorBanner error={unshare.error} />
-            <Button
-              title="공동 코스에서 빼기"
-              variant="text"
-              loading={unshare.isPending}
-              onPress={() =>
-                confirmUnshare('코스', shared.sharedByMe, (scope) =>
-                  unshare.mutate(
-                    { coupleId, id, scope },
-                    { onSuccess: () => (router.canGoBack() ? router.back() : router.replace('/course')) },
-                  ),
-                )
-              }
-            />
-          </>
-        )
+        <>
+          <CommentSection coupleId={coupleId} targetType="SHARED_COURSE" targetId={id} readOnly={shared.readOnly} />
+          <MemoSection targetType="COURSE" targetId={shared.course.id} />
+          {shared.readOnly ? null : (
+            <>
+              <ErrorBanner error={unshare.error} />
+              <Button
+                title="공동 코스에서 빼기"
+                variant="text"
+                loading={unshare.isPending}
+                onPress={() =>
+                  confirmUnshare('코스', shared.sharedByMe, (scope) =>
+                    unshare.mutate(
+                      { coupleId, id, scope },
+                      { onSuccess: () => (router.canGoBack() ? router.back() : router.replace('/course')) },
+                    ),
+                  )
+                }
+              />
+            </>
+          )}
+        </>
       }
     />
   );

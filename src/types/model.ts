@@ -165,3 +165,20 @@ export interface SharedPage<T> extends Page<T> {
   status: CoupleStatusModel;
   graceExpiresAt: string | null;
 }
+
+// ---- 메모·첨언
+export interface Memo {
+  id: number;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Comment {
+  id: number;
+  authorName: string;
+  mine: boolean;
+  content: string;
+  createdAt: string;
+  edited: boolean;
+}

@@ -5,6 +5,7 @@ import { Button } from '@/components/Button';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { Screen } from '@/components/Screen';
 import { useCurrentCouple, useSharePlace } from '@/features/couple/hooks/useCouple';
+import { MemoSection } from '@/features/notes/components/NoteSections';
 import { colors, fontSize, radius, spacing } from '@/theme';
 import type { PlaceId } from '@/types/ids';
 import type { Place } from '@/types/model';
@@ -77,6 +78,7 @@ export function PlaceDetailScreen() {
       ) : null}
 
       <ShareBox placeId={p.id} sharedPlaceId={p.sharedPlaceId} />
+      <MemoSection targetType="PLACE" targetId={p.id} />
 
       <ErrorBanner error={remove.error} />
       <Button title="보관함에서 삭제" variant="text" loading={remove.isPending} onPress={confirmDelete} />

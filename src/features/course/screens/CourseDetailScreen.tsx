@@ -5,6 +5,7 @@ import { Button } from '@/components/Button';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { Screen } from '@/components/Screen';
 import { useCurrentCouple, useShareCourse } from '@/features/couple/hooks/useCouple';
+import { MemoSection } from '@/features/notes/components/NoteSections';
 import { colors, fontSize, radius, spacing } from '@/theme';
 import type { CourseId } from '@/types/ids';
 import type { Course } from '@/types/model';
@@ -91,6 +92,7 @@ function PersonalCourse({ course }: { course: Course }) {
       footer={
         <>
           {shareBox}
+          <MemoSection targetType="COURSE" targetId={course.id} />
           <ErrorBanner error={remove.error} />
           <Button title="코스 삭제" variant="text" loading={remove.isPending} onPress={confirmDelete} />
         </>

@@ -42,6 +42,19 @@ function setCurrentCouple(memberIds: number[], coupleId: number | null) {
 }
 
 // ---------------------------------------------------------------- 사본
+/** 본문이 개인본으로 분리될 때 그 사람의 메모를 개인본으로 옮긴다(TRD 5.3-1, 11.1). */
+function moveMemos(memberId: number, kind: 'PLACE' | 'COURSE', fromId: number, toId: number) {
+  for (const m of db().memos) {
+    if (m.authorId === memberId && m.targetType === kind && m.targetId === fromId) m.targetId = toId;
+  }
+}
+
+function placeCopyOf(memberId: number, sharedId: number) {
+  return db().places.find((p) => p.ownerId === memberId && p.sourceSharedPlaceId === sharedId);
+}
+function courseCopyOf(memberId: number, sharedId: number) {
+  return db().courses.find((c) => c.ownerId === memberId && c.sourceSharedCourseId === sharedId);
+}
 function hasPlaceCopy(memberId: number, sharedId: number) {
   return db().places.some((p) => p.ownerId === memberId && p.sourceSharedPlaceId === sharedId);
 }
@@ -64,6 +77,7 @@ function copyPlace(share: MockShared, ownerId: number) {
     updatedAt: now,
   };
   store.places.push(copy);
+  moveMemos(ownerId, 'PLACE', src.placeId, copy.placeId);
   return { previous: src.placeId, copy: copy.placeId as number };
 }
 
@@ -85,6 +99,7 @@ function copyCourse(share: MockShared, ownerId: number) {
     for (const it of p.items) it.courseItemId = nextCourseId();
   }
   store.courses.push(copy);
+  moveMemos(ownerId, 'COURSE', src.courseId, copy.courseId);
   return { previous: src.courseId, copy: copy.courseId as number };
 }
 
@@ -101,8 +116,15 @@ function closeCouple(couple: MockCouple) {
   if (couple.status === 'CLOSED') return;
   const { places, courses } = activeShares(couple.coupleId);
   for (const m of couple.memberIds) {
-    for (const s of places) if (!hasPlaceCopy(m, s.sharedId)) copyPlace(s, m);
-    for (const s of courses) if (!hasCourseCopy(m, s.sharedId)) copyCourse(s, m);
+    for (const s of places) {
+      if (!hasPlaceCopy(m, s.sharedId)) copyPlace(s, m);
+      // 유예 중에 공동 본문에 쓴 메모도 내 사본으로 옮긴다.
+      else moveMemos(m, 'PLACE', s.contentId, placeCopyOf(m, s.sharedId)!.placeId);
+    }
+    for (const s of courses) {
+      if (!hasCourseCopy(m, s.sharedId)) copyCourse(s, m);
+      else moveMemos(m, 'COURSE', s.contentId, courseCopyOf(m, s.sharedId)!.courseId);
+    }
   }
   couple.status = 'CLOSED';
   couple.closedAt = nowIso();
@@ -554,3 +576,34 @@ export const mockPartner = {
   },
 };
 
+
+// ---------------------------------------------------------------- 메모·첨언 mock이 쓰는 권한 확인
+/** 개인 본문이 아니어도, 내가 속한 ACTIVE·GRACE 관계의 공유 대상이면 볼 수 있다. */
+export function bodyVisibleViaShare(actorId: number, kind: 'PLACE' | 'COURSE', contentId: number): boolean {
+  expireGrace();
+  const store = db();
+  const list = kind === 'PLACE' ? store.sharedPlaces : store.sharedCourses;
+  return list.some((s) => {
+    if (s.contentId !== contentId || s.canceledAt) return false;
+    const c = store.couples.find((x) => x.coupleId === s.coupleId);
+    return !!c && c.status !== 'CLOSED' && c.memberIds.includes(actorId);
+  });
+}
+
+/** 첨언 대상(공유 기록) 확인. write면 ACTIVE여야 한다. 종료·취소된 대상은 404. */
+export function checkCommentTarget(
+  actorId: number,
+  coupleId: number,
+  targetType: 'SHARED_PLACE' | 'SHARED_COURSE',
+  targetId: number,
+  write: boolean,
+) {
+  const couple = myCouple(actorId, coupleId);
+  if (couple.status === 'CLOSED') notFound();
+  const list = targetType === 'SHARED_PLACE' ? db().sharedPlaces : db().sharedCourses;
+  findShare(list, coupleId, targetId);
+  if (write && couple.status !== 'ACTIVE') conflict('COUPLE-0409', 'SHARED_READ_ONLY');
+  return couple;
+}
+
+export { memberName };

@@ -7,6 +7,7 @@ import { Screen } from '@/components/Screen';
 import { TextField } from '@/components/TextField';
 import { mockPartner } from '@/mocks/couples';
 import { resetDb } from '@/mocks/db';
+import { partnerCommentOnLatest } from '@/mocks/notes';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { colors, fontSize, radius, spacing } from '@/theme';
 
@@ -94,6 +95,7 @@ export function DevSettingsScreen() {
           <Button title="상대가 내 초대 코드 수락" variant="secondary" onPress={() => runPartner(mockPartner.acceptMyInvitation)} />
           <Button title="상대가 초대 코드 만들기" variant="secondary" onPress={() => runPartner(mockPartner.issueInvitation)} />
           <Button title="상대가 장소 하나 공유" variant="secondary" onPress={() => runPartner(mockPartner.sharePlace)} />
+          <Button title="상대가 최근 공동 기록에 첨언" variant="secondary" onPress={() => runPartner(partnerCommentOnLatest)} />
           <Button title="연결 해제 유예 바로 끝내기" variant="text" onPress={() => runPartner(mockPartner.expireGrace)} />
           {partnerMsg ? <Text style={styles.result} selectable>{partnerMsg}</Text> : null}
         </View>

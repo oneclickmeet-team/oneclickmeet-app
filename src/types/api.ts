@@ -330,3 +330,41 @@ export interface SharedCourseResponse extends SharedBase {
 }
 
 export type UnshareScope = 'SHARED_ONLY' | 'PERSONAL_AND_SHARED';
+
+// 11.1 비공개 메모 (N01~N05). targetId는 PLACE면 placeId, COURSE면 courseId(본문 ID)
+export type MemoTargetType = 'PLACE' | 'COURSE';
+
+export interface MemoResponse {
+  memoId: number;
+  targetType: MemoTargetType;
+  targetId: number;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemoCreateRequest {
+  targetType: MemoTargetType;
+  targetId: number;
+  content: string;
+}
+
+// 11.2 공동 첨언 (N06~N09). targetId는 공유 기록 ID(sharedPlaceId·sharedCourseId)
+export type CommentTargetType = 'SHARED_PLACE' | 'SHARED_COURSE';
+
+export interface CommentResponse {
+  commentId: number;
+  coupleId: number;
+  targetType: CommentTargetType;
+  targetId: number;
+  author: CoupleMember;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommentCreateRequest {
+  targetType: CommentTargetType;
+  targetId: number;
+  content: string;
+}

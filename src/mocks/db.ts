@@ -2,7 +2,14 @@
 // 개발자 설정의 "mock 데이터 초기화"로 지운다.
 import { File, Paths } from 'expo-file-system';
 
-import type { CategoryCode, CourseResponse, MemberResponse, PlaceResponse } from '@/types/api';
+import type {
+  CategoryCode,
+  CommentResponse,
+  CourseResponse,
+  MemberResponse,
+  MemoResponse,
+  PlaceResponse,
+} from '@/types/api';
 
 export interface MockAccount {
   email: string;
@@ -64,6 +71,10 @@ interface MockDb {
   sharedCourses: MockShared[];
   /** coupleId, sharedPlaceId, sharedCourseId 공용 순번 */
   nextShareSeq: number;
+  memos: (MemoResponse & { authorId: number })[];
+  comments: (Omit<CommentResponse, 'author'> & { authorId: number })[];
+  /** memoId, commentId 공용 순번 */
+  nextNoteSeq: number;
 }
 
 export const DEMO_ACCOUNT: MockAccount = {
@@ -104,6 +115,9 @@ function initialDb(): MockDb {
     sharedPlaces: [],
     sharedCourses: [],
     nextShareSeq: 1,
+    memos: [],
+    comments: [],
+    nextNoteSeq: 1,
   };
 }
 
