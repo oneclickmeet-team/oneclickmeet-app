@@ -36,6 +36,7 @@ const REASON_MESSAGES: Record<string, string> = {
   RESOURCE_NOT_FOUND: '찾을 수 없어요. 이미 삭제됐을 수 있어요.',
   IMAGE_TOO_LARGE: '이미지가 너무 커요. 5MB 이하로 올려 주세요.',
   UNSUPPORTED_IMAGE_TYPE: 'JPEG, PNG, WebP 이미지만 올릴 수 있어요.',
+  COURSE_STRUCTURE_CONFLICT: '그사이 코스가 바뀌었어요. 새로 불러온 뒤 다시 편집해 주세요.',
   PROVIDER_UNAVAILABLE: '외부 서비스가 응답하지 않아요. 잠시 후 다시 시도해 주세요.',
 };
 

@@ -238,3 +238,23 @@ export interface CourseListParams {
   size?: number;
   query?: string;
 }
+
+// 9.3 코스 편집 요청 (T04). 최종 저장 때 변경분만 명령 묶음으로 보낸다.
+export type PlaceWithItems = PlaceSnapshot & { items: CourseItemInput[] };
+
+export type CourseEditOperation =
+  | { type: 'UPDATE_TITLE'; title: string }
+  | { type: 'ADD_PLACE'; clientPlaceKey: string; place: PlaceWithItems }
+  | { type: 'REPLACE_PLACE'; coursePlaceId: number; clientPlaceKey: string; place: PlaceWithItems }
+  | { type: 'REMOVE_PLACE'; coursePlaceId: number }
+  | {
+      type: 'REORDER_PLACES';
+      places: ({ coursePlaceId: number } | { clientPlaceKey: string })[];
+    }
+  | { type: 'ADD_ITEM'; coursePlaceId: number; item: CourseItemInput }
+  | ({ type: 'UPDATE_ITEM'; courseItemId: number } & Partial<CourseItemInput>)
+  | { type: 'REMOVE_ITEM'; courseItemId: number };
+
+export interface CourseEditRequest {
+  operations: CourseEditOperation[];
+}

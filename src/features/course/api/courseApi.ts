@@ -1,10 +1,11 @@
-// 코스 추천·저장 API (TRD R01, T01~T03, T05). T04 편집은 다음 단계에서 붙인다.
+// 코스 추천·저장·편집 API (TRD R01, T01~T05)
 import { apiRequest } from '@/lib/apiClient';
 import { mockCourses } from '@/mocks/courses';
 import { isMockMode } from '@/stores/settingsStore';
 import type {
   AmountSummary,
   CourseCreateRequest,
+  CourseEditRequest,
   CourseListParams,
   CourseResponse,
   CourseSummary,
@@ -122,6 +123,14 @@ export const courseApi = {
   // T03
   async get(id: CourseId): Promise<Course> {
     const res = isMockMode() ? await mockCourses.get(id) : await apiRequest<CourseResponse>(`/courses/${id}`);
+    return toCourse(res);
+  },
+
+  // T04: 변경분만 operations로 보낸다
+  async update(id: CourseId, req: CourseEditRequest): Promise<Course> {
+    const res = isMockMode()
+      ? await mockCourses.update(id, req)
+      : await apiRequest<CourseResponse>(`/courses/${id}`, { method: 'PATCH', body: req });
     return toCourse(res);
   },
 

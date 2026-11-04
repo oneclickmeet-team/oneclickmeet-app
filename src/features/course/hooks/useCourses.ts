@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { CourseCreateRequest, RecommendationRequest } from '@/types/api';
+import type { CourseCreateRequest, CourseEditRequest, RecommendationRequest } from '@/types/api';
 import type { CourseId } from '@/types/ids';
 
 import { courseApi } from '../api/courseApi';
@@ -41,6 +41,19 @@ export function useCourse(id: CourseId | null) {
     queryKey: courseKeys.detail(id ?? (0 as CourseId)),
     queryFn: () => courseApi.get(id!),
     enabled: id !== null,
+  });
+}
+
+export function useUpdateCourse(id: CourseId) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (req: CourseEditRequest) => courseApi.update(id, req),
+    onSuccess: (course) => {
+      queryClient.setQueryData(courseKeys.detail(id), course);
+      return queryClient.invalidateQueries({ queryKey: courseKeys.all });
+    },
+    // 다른 사람이 먼저 구조를 바꿨으면(409) 최신 코스를 다시 불러온다(TRD 9.3-7).
+    onError: () => queryClient.invalidateQueries({ queryKey: courseKeys.detail(id) }),
   });
 }
 

@@ -9,12 +9,14 @@ interface StopListProps {
   stops: CourseStop[];
   /** legMinutes[i] = i → i+1 추정 도보 분 */
   legMinutes: number[];
+  /** 각 장소 카드 안에 넣을 내용 (메뉴·금액 등) */
+  renderBody?: (index: number) => ReactNode;
   /** 각 장소 카드 아래에 붙일 버튼 등 */
   renderActions?: (index: number) => ReactNode;
 }
 
 // 장소 사이 도보 시간은 좌표로 계산한 추정값이라 항상 "약"을 붙인다.
-export function StopList({ stops, legMinutes, renderActions }: StopListProps) {
+export function StopList({ stops, legMinutes, renderBody, renderActions }: StopListProps) {
   return (
     <View>
       {stops.map((s, i) => (
@@ -26,6 +28,7 @@ export function StopList({ stops, legMinutes, renderActions }: StopListProps) {
               <Text style={styles.sub} numberOfLines={1}>
                 {s.address ?? '주소 없음'}
               </Text>
+              {renderBody ? renderBody(i) : null}
               {renderActions ? <View style={styles.actions}>{renderActions(i)}</View> : null}
             </View>
           </View>
