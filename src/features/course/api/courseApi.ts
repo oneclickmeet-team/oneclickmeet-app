@@ -54,7 +54,7 @@ function toRecommendation(res: RecommendationResponse): Recommendation {
   };
 }
 
-function toCourse(res: CourseResponse): Course {
+export function toCourse(res: CourseResponse): Course {
   return {
     id: res.courseId as CourseId,
     title: res.title,

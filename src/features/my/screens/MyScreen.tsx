@@ -5,6 +5,7 @@ import { Button } from '@/components/Button';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { Screen } from '@/components/Screen';
 import { useLogout, useMe } from '@/features/auth/hooks/useAuth';
+import { useCurrentCouple } from '@/features/couple/hooks/useCouple';
 import { useAuthStore } from '@/stores/authStore';
 import { colors, fontSize, radius, spacing } from '@/theme';
 
@@ -13,6 +14,12 @@ export function MyScreen() {
   const me = useMe();
   const member = useAuthStore((s) => s.member);
   const logout = useLogout();
+  const { couple } = useCurrentCouple();
+  const coupleText = !couple
+    ? '아직 커플 연결 전이에요'
+    : couple.status === 'ACTIVE'
+      ? `${couple.partner?.name ?? '상대'}와 연결됨`
+      : `연결 해제됨 · ${couple.graceDaysLeft ?? 0}일 뒤 종료`;
 
   return (
     <Screen>
@@ -20,9 +27,12 @@ export function MyScreen() {
 
       <View style={styles.card}>
         <Text style={styles.name}>{member?.displayName ?? '...'}</Text>
-        <Text style={styles.desc}>
-          {member?.currentCoupleId ? '커플 연결됨' : '아직 커플 연결 전이에요'}
-        </Text>
+        <Text style={styles.desc}>{coupleText}</Text>
+        <Button
+          title={couple ? '커플 연결 관리' : '커플 연결하기'}
+          variant="secondary"
+          onPress={() => router.push('/couple')}
+        />
       </View>
       <ErrorBanner error={me.error} />
 

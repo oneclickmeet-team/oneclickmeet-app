@@ -37,6 +37,16 @@ const REASON_MESSAGES: Record<string, string> = {
   IMAGE_TOO_LARGE: '이미지가 너무 커요. 5MB 이하로 올려 주세요.',
   UNSUPPORTED_IMAGE_TYPE: 'JPEG, PNG, WebP 이미지만 올릴 수 있어요.',
   COURSE_STRUCTURE_CONFLICT: '그사이 코스가 바뀌었어요. 새로 불러온 뒤 다시 편집해 주세요.',
+  ACTIVE_COUPLE_EXISTS: '이미 연결된 상대가 있어요. 연결을 해제한 뒤에 다시 시도해 주세요.',
+  OWN_INVITATION: '내가 만든 코드예요. 상대에게 보내서 상대가 입력해야 해요.',
+  INVITATION_USED: '이미 사용된 코드예요. 새 코드를 받아 주세요.',
+  INVALID_INVITATION: '코드가 틀렸거나 기간(24시간)이 지났어요.',
+  RECONNECT_REQUIRED: '이 상대와는 연결 해제 유예 중이에요. 재연결로 다시 이어 주세요.',
+  NOT_ACTIVE: '이미 해제된 관계예요.',
+  NOT_IN_GRACE: '유예 중인 관계에서만 재연결 코드를 만들 수 있어요.',
+  COUPLE_CLOSED: '종료된 관계예요. 공동 기록은 더 볼 수 없어요.',
+  SHARED_READ_ONLY: '연결 해제 유예 중에는 공동 기록을 바꿀 수 없어요.',
+  ALREADY_SHARED: '이미 공유한 항목이에요.',
   PROVIDER_UNAVAILABLE: '외부 서비스가 응답하지 않아요. 잠시 후 다시 시도해 주세요.',
 };
 

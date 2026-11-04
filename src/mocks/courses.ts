@@ -227,7 +227,7 @@ function amountOf(course: Pick<CourseResponse, 'places'>): AmountSummary {
   };
 }
 
-function toResponse({ ownerId: _o, ...rest }: MockCourse): CourseResponse {
+export function toCourseResponse({ ownerId: _o, ...rest }: MockCourse): CourseResponse {
   // 도보 시간은 조회할 때마다 다시 계산한다(TRD 9.4).
   return { ...rest, walkingLegs: legsOf(rest.places), amountSummary: amountOf(rest) };
 }
@@ -237,6 +237,120 @@ function findOwned(courseId: number) {
   const course = db().courses.find((c) => c.courseId === courseId && c.ownerId === me);
   if (!course) fail({ status: 404, title: 'Not Found', code: 'COMMON-0404', reason: 'RESOURCE_NOT_FOUND' });
   return course;
+}
+
+/** T04·S08 공통: 명령을 순서대로 적용하고, 하나라도 실패하면 전체 취소한다. */
+export function applyCourseEdit(course: MockCourse, req: CourseEditRequest): CourseResponse {
+  if (!req.operations?.length) badRequest('operations', '변경 내용이 없어요.');
+  const store = db();
+  let nextSeq = store.nextCourseSeq;
+  const seq = () => nextSeq++;
+  const notFound = () =>
+    fail({ status: 404, title: 'Not Found', code: 'COMMON-0404', reason: 'RESOURCE_NOT_FOUND' });
+
+  let title = course.title;
+  let places: CoursePlaceResponse[] = JSON.parse(JSON.stringify(course.places));
+  const keyToId = new Map<string, number>();
+  const findItem = (itemId: number) => {
+    for (const p of places) {
+      const item = p.items.find((i) => i.courseItemId === itemId);
+      if (item) return { p, item };
+    }
+    return notFound();
+  };
+  const newPlace = (src: PlaceWithItems): CoursePlaceResponse => ({
+    coursePlaceId: seq(),
+    visitOrder: 0,
+    name: src.name,
+    address: src.address,
+    latitude: src.latitude,
+    longitude: src.longitude,
+    items: src.items.map((i) => ({ ...i, courseItemId: seq() })),
+    checkedSubtotal: 0,
+  });
+  const claimKey = (key: string, id: number) => {
+    if (keyToId.has(key)) badRequest('clientPlaceKey', '같은 임시 키를 두 번 쓸 수 없어요.');
+    keyToId.set(key, id);
+  };
+
+  for (const op of req.operations) {
+    switch (op.type) {
+      case 'UPDATE_TITLE':
+        if (!op.title.trim() || op.title.length > 255) badRequest('title', '코스 제목은 1~255자예요.');
+        title = op.title.trim();
+        break;
+      case 'ADD_ITEM': {
+        const p = places.find((x) => x.coursePlaceId === op.coursePlaceId) ?? notFound();
+        if (!op.item.name.trim()) badRequest('name', '항목 이름을 입력해 주세요.');
+        p.items.push({ ...op.item, courseItemId: seq() });
+        break;
+      }
+      case 'UPDATE_ITEM': {
+        const { item } = findItem(op.courseItemId);
+        if (op.name === undefined && op.twoPersonAmount === undefined && op.isChecked === undefined) {
+          badRequest('operations', '바꿀 필드가 없어요.');
+        }
+        if (op.name !== undefined) {
+          if (!op.name.trim()) badRequest('name', '항목 이름을 입력해 주세요.');
+          item.name = op.name;
+        }
+        if (op.twoPersonAmount !== undefined) item.twoPersonAmount = op.twoPersonAmount;
+        if (op.isChecked !== undefined) item.isChecked = op.isChecked;
+        break;
+      }
+      case 'REMOVE_ITEM': {
+        const { p } = findItem(op.courseItemId);
+        p.items = p.items.filter((i) => i.courseItemId !== op.courseItemId);
+        break;
+      }
+      case 'REMOVE_PLACE':
+        if (!places.some((x) => x.coursePlaceId === op.coursePlaceId)) notFound();
+        places = places.filter((x) => x.coursePlaceId !== op.coursePlaceId);
+        break;
+      case 'REPLACE_PLACE': {
+        const idx = places.findIndex((x) => x.coursePlaceId === op.coursePlaceId);
+        if (idx < 0) notFound();
+        const np = newPlace(op.place);
+        claimKey(op.clientPlaceKey, np.coursePlaceId);
+        places[idx] = np;
+        break;
+      }
+      case 'ADD_PLACE': {
+        const np = newPlace(op.place);
+        claimKey(op.clientPlaceKey, np.coursePlaceId);
+        places.push(np);
+        break;
+      }
+      case 'REORDER_PLACES': {
+        const ids = op.places.map((r) =>
+          'coursePlaceId' in r ? r.coursePlaceId : keyToId.get(r.clientPlaceKey) ?? badRequest('places', '모르는 임시 키예요.'),
+        );
+        const current = places.map((x) => x.coursePlaceId);
+        if (ids.length !== current.length || new Set(ids).size !== ids.length || ids.some((id) => !current.includes(id))) {
+          badRequest('places', '순서에는 모든 장소가 빠짐·중복 없이 있어야 해요.');
+        }
+        places = ids.map((id) => places.find((x) => x.coursePlaceId === id)!);
+        break;
+      }
+    }
+  }
+
+  if (places.length < 3 || places.length > 5) badRequest('places', '코스는 3~5곳이에요.');
+  places = places.map((p, i) => ({
+    ...p,
+    visitOrder: i + 1,
+    checkedSubtotal: p.items
+      .filter((it) => it.isChecked && it.twoPersonAmount !== null)
+      .reduce((sum, it) => sum + (it.twoPersonAmount ?? 0), 0),
+  }));
+
+  // 모든 명령이 통과했을 때만 반영
+  course.title = title;
+  course.places = places;
+  course.updatedAt = nowIso();
+  store.nextCourseSeq = nextSeq;
+  saveDb();
+  return toCourseResponse(course);
 }
 
 export const mockCourses = {
@@ -290,123 +404,13 @@ export const mockCourses = {
     };
     store.courses.push(course);
     saveDb();
-    return toResponse(course);
+    return toCourseResponse(course);
   },
 
-  // T04: 명령을 순서대로 적용하고, 하나라도 실패하면 전체 취소(복사본에만 적용 후 마지막에 반영)
+  // T04
   async update(courseId: number, req: CourseEditRequest): Promise<CourseResponse> {
     await delay();
-    const course = findOwned(courseId);
-    if (!req.operations?.length) badRequest('operations', '변경 내용이 없어요.');
-    const store = db();
-    let nextSeq = store.nextCourseSeq;
-    const seq = () => nextSeq++;
-    const notFound = () =>
-      fail({ status: 404, title: 'Not Found', code: 'COMMON-0404', reason: 'RESOURCE_NOT_FOUND' });
-
-    let title = course.title;
-    let places: CoursePlaceResponse[] = JSON.parse(JSON.stringify(course.places));
-    const keyToId = new Map<string, number>();
-    const findItem = (itemId: number) => {
-      for (const p of places) {
-        const item = p.items.find((i) => i.courseItemId === itemId);
-        if (item) return { p, item };
-      }
-      return notFound();
-    };
-    const newPlace = (src: PlaceWithItems): CoursePlaceResponse => ({
-      coursePlaceId: seq(),
-      visitOrder: 0,
-      name: src.name,
-      address: src.address,
-      latitude: src.latitude,
-      longitude: src.longitude,
-      items: src.items.map((i) => ({ ...i, courseItemId: seq() })),
-      checkedSubtotal: 0,
-    });
-    const claimKey = (key: string, id: number) => {
-      if (keyToId.has(key)) badRequest('clientPlaceKey', '같은 임시 키를 두 번 쓸 수 없어요.');
-      keyToId.set(key, id);
-    };
-
-    for (const op of req.operations) {
-      switch (op.type) {
-        case 'UPDATE_TITLE':
-          if (!op.title.trim() || op.title.length > 255) badRequest('title', '코스 제목은 1~255자예요.');
-          title = op.title.trim();
-          break;
-        case 'ADD_ITEM': {
-          const p = places.find((x) => x.coursePlaceId === op.coursePlaceId) ?? notFound();
-          if (!op.item.name.trim()) badRequest('name', '항목 이름을 입력해 주세요.');
-          p.items.push({ ...op.item, courseItemId: seq() });
-          break;
-        }
-        case 'UPDATE_ITEM': {
-          const { item } = findItem(op.courseItemId);
-          if (op.name === undefined && op.twoPersonAmount === undefined && op.isChecked === undefined) {
-            badRequest('operations', '바꿀 필드가 없어요.');
-          }
-          if (op.name !== undefined) {
-            if (!op.name.trim()) badRequest('name', '항목 이름을 입력해 주세요.');
-            item.name = op.name;
-          }
-          if (op.twoPersonAmount !== undefined) item.twoPersonAmount = op.twoPersonAmount;
-          if (op.isChecked !== undefined) item.isChecked = op.isChecked;
-          break;
-        }
-        case 'REMOVE_ITEM': {
-          const { p } = findItem(op.courseItemId);
-          p.items = p.items.filter((i) => i.courseItemId !== op.courseItemId);
-          break;
-        }
-        case 'REMOVE_PLACE':
-          if (!places.some((x) => x.coursePlaceId === op.coursePlaceId)) notFound();
-          places = places.filter((x) => x.coursePlaceId !== op.coursePlaceId);
-          break;
-        case 'REPLACE_PLACE': {
-          const idx = places.findIndex((x) => x.coursePlaceId === op.coursePlaceId);
-          if (idx < 0) notFound();
-          const np = newPlace(op.place);
-          claimKey(op.clientPlaceKey, np.coursePlaceId);
-          places[idx] = np;
-          break;
-        }
-        case 'ADD_PLACE': {
-          const np = newPlace(op.place);
-          claimKey(op.clientPlaceKey, np.coursePlaceId);
-          places.push(np);
-          break;
-        }
-        case 'REORDER_PLACES': {
-          const ids = op.places.map((r) =>
-            'coursePlaceId' in r ? r.coursePlaceId : keyToId.get(r.clientPlaceKey) ?? badRequest('places', '모르는 임시 키예요.'),
-          );
-          const current = places.map((x) => x.coursePlaceId);
-          if (ids.length !== current.length || new Set(ids).size !== ids.length || ids.some((id) => !current.includes(id))) {
-            badRequest('places', '순서에는 모든 장소가 빠짐·중복 없이 있어야 해요.');
-          }
-          places = ids.map((id) => places.find((x) => x.coursePlaceId === id)!);
-          break;
-        }
-      }
-    }
-
-    if (places.length < 3 || places.length > 5) badRequest('places', '코스는 3~5곳이에요.');
-    places = places.map((p, i) => ({
-      ...p,
-      visitOrder: i + 1,
-      checkedSubtotal: p.items
-        .filter((it) => it.isChecked && it.twoPersonAmount !== null)
-        .reduce((sum, it) => sum + (it.twoPersonAmount ?? 0), 0),
-    }));
-
-    // 모든 명령이 통과했을 때만 반영
-    course.title = title;
-    course.places = places;
-    course.updatedAt = nowIso();
-    store.nextCourseSeq = nextSeq;
-    saveDb();
-    return toResponse(course);
+    return applyCourseEdit(findOwned(courseId), req);
   },
 
   // T01
@@ -418,7 +422,7 @@ export const mockCourses = {
       .courses.filter((c) => c.ownerId === me && (!q || c.title.includes(q)))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.courseId - a.courseId)
       .map((c) => {
-        const full = toResponse(c);
+        const full = toCourseResponse(c);
         return {
           courseId: c.courseId,
           title: c.title,
@@ -438,7 +442,7 @@ export const mockCourses = {
   // T03
   async get(courseId: number): Promise<CourseResponse> {
     await delay(200);
-    return toResponse(findOwned(courseId));
+    return toCourseResponse(findOwned(courseId));
   },
 
   // T05

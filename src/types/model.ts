@@ -1,5 +1,13 @@
 // 화면이 쓰는 모델. 서버 계약(api.ts)과 분리해 둔다.
-import type { CoupleId, CourseId, LibraryId, MemberId, PlaceId, SharedPlaceId } from './ids';
+import type {
+  CoupleId,
+  CourseId,
+  LibraryId,
+  MemberId,
+  PlaceId,
+  SharedCourseId,
+  SharedPlaceId,
+} from './ids';
 
 export interface Member {
   id: MemberId;
@@ -111,4 +119,49 @@ export interface CourseSummaryModel {
   amount: AmountSummaryModel;
   shared: boolean;
   createdAt: string;
+}
+
+// ---- 커플·공유
+
+export type CoupleStatusModel = 'ACTIVE' | 'GRACE' | 'CLOSED';
+
+export interface Couple {
+  id: CoupleId;
+  status: CoupleStatusModel;
+  partner: { id: MemberId; name: string } | null;
+  disconnectedAt: string | null;
+  graceExpiresAt: string | null;
+  /** 유예 종료까지 남은 일수(서버 시각 기준). GRACE가 아니면 null */
+  graceDaysLeft: number | null;
+  readOnly: boolean;
+  canReconnect: boolean;
+}
+
+export interface Invitation {
+  code: string;
+  purpose: 'CONNECT' | 'RECONNECT';
+  expiresAt: string;
+}
+
+export interface SharedMeta {
+  coupleId: CoupleId;
+  sharedByMe: boolean;
+  sharedAt: string;
+  readOnly: boolean;
+}
+
+export interface SharedPlace extends SharedMeta {
+  sharedId: SharedPlaceId;
+  place: Place;
+}
+
+export interface SharedCourse extends SharedMeta {
+  sharedId: SharedCourseId;
+  course: Course;
+}
+
+export interface SharedPage<T> extends Page<T> {
+  readOnly: boolean;
+  status: CoupleStatusModel;
+  graceExpiresAt: string | null;
 }

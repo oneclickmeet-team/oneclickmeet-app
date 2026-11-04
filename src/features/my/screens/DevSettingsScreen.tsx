@@ -5,6 +5,7 @@ import { Alert, StyleSheet, Switch, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { TextField } from '@/components/TextField';
+import { mockPartner } from '@/mocks/couples';
 import { resetDb } from '@/mocks/db';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { colors, fontSize, radius, spacing } from '@/theme';
@@ -31,6 +32,17 @@ export function DevSettingsScreen() {
         },
       },
     ]);
+
+  // mock 전용: 상대 계정(partner@oneclickmeet.app)이 할 행동을 대신 실행한다.
+  const [partnerMsg, setPartnerMsg] = useState<string | null>(null);
+  const runPartner = (fn: () => string) => {
+    try {
+      setPartnerMsg(fn());
+    } catch (e) {
+      setPartnerMsg(e instanceof Error ? e.message : '실패했어요.');
+    }
+    void queryClient.invalidateQueries();
+  };
 
   const dirty = draftUrl.trim().replace(/\/+$/, '') !== apiBaseUrl;
 
@@ -72,6 +84,20 @@ export function DevSettingsScreen() {
         </View>
         {useMock ? <Button title="mock 데이터 초기화" variant="text" onPress={confirmReset} /> : null}
       </View>
+
+      {useMock ? (
+        <View style={styles.card}>
+          <Text style={styles.title}>상대 역할 흉내 (mock)</Text>
+          <Text style={styles.desc}>
+            혼자서 커플 기능을 시험할 때 써요. 상대 계정 partner@oneclickmeet.app / demo1234로 로그인하면 반대편 화면도 볼 수 있어요.
+          </Text>
+          <Button title="상대가 내 초대 코드 수락" variant="secondary" onPress={() => runPartner(mockPartner.acceptMyInvitation)} />
+          <Button title="상대가 초대 코드 만들기" variant="secondary" onPress={() => runPartner(mockPartner.issueInvitation)} />
+          <Button title="상대가 장소 하나 공유" variant="secondary" onPress={() => runPartner(mockPartner.sharePlace)} />
+          <Button title="연결 해제 유예 바로 끝내기" variant="text" onPress={() => runPartner(mockPartner.expireGrace)} />
+          {partnerMsg ? <Text style={styles.result} selectable>{partnerMsg}</Text> : null}
+        </View>
+      ) : null}
 
       <View style={styles.card}>
         <TextField

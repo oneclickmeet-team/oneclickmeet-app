@@ -98,7 +98,7 @@ function validatePlaceInput(input: PlaceInput) {
   }
 }
 
-function toResponse({ ownerId: _o, categoryCode: _c, ...rest }: MockPlace): PlaceResponse {
+export function toPlaceResponse({ ownerId: _o, categoryCode: _c, ...rest }: MockPlace): PlaceResponse {
   return rest;
 }
 
@@ -200,7 +200,7 @@ export const mockPlaces = {
             distanceMeters(region.latitude, region.longitude, p.latitude, p.longitude) <= 1500),
       )
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.placeId - a.placeId)
-      .map(toResponse);
+      .map(toPlaceResponse);
     return paginate(items, params.page, params.size ?? 20);
   },
 
@@ -229,13 +229,13 @@ export const mockPlaces = {
     store.nextPlaceId += 1;
     store.places.push(place);
     saveDb();
-    return toResponse(place);
+    return toPlaceResponse(place);
   },
 
   // P07
   async get(placeId: number): Promise<PlaceResponse> {
     await delay(200);
-    return toResponse(findOwned(placeId));
+    return toPlaceResponse(findOwned(placeId));
   },
 
   // P08
@@ -246,7 +246,7 @@ export const mockPlaces = {
     validatePlaceInput(next);
     Object.assign(place, next);
     saveDb();
-    return toResponse(place);
+    return toPlaceResponse(place);
   },
 
   // P09

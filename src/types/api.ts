@@ -258,3 +258,75 @@ export type CourseEditOperation =
 export interface CourseEditRequest {
   operations: CourseEditOperation[];
 }
+
+// 5 커플 연결과 수명주기 (C01~C06)
+export type CoupleStatus = 'ACTIVE' | 'GRACE' | 'CLOSED';
+
+export interface CoupleMember {
+  memberId: number;
+  displayName: string;
+}
+
+export interface CoupleResponse {
+  coupleId: number;
+  status: CoupleStatus;
+  members: CoupleMember[];
+  disconnectedAt: string | null;
+  graceExpiresAt: string | null;
+  closedAt: string | null;
+  readOnly: boolean;
+  canReconnect: boolean;
+  serverTime: string;
+}
+
+export interface InvitationRequest {
+  purpose: 'CONNECT' | 'RECONNECT';
+  coupleId?: number;
+}
+
+export interface InvitationResponse {
+  invitationCode: string;
+  purpose: 'CONNECT' | 'RECONNECT';
+  coupleId: number | null;
+  expiresAt: string;
+}
+
+export interface DisconnectionResponse {
+  couple: CoupleResponse;
+  personalCopies: {
+    targetType: 'PLACE' | 'COURSE';
+    sourceSharedId: number;
+    previousContentId: number;
+    personalContentId: number;
+  }[];
+  reloadPersonalLibrary: boolean;
+}
+
+// 10 공동 장소와 코스 (S01~S09)
+export interface SharedPageResponse<T> extends PageResponse<T> {
+  coupleId: number;
+  relationshipStatus: CoupleStatus;
+  readOnly: boolean;
+  graceExpiresAt: string | null;
+}
+
+interface SharedBase {
+  coupleId: number;
+  sharedByMemberId: number;
+  sharedAt: string;
+  relationshipStatus: CoupleStatus;
+  readOnly: boolean;
+  graceExpiresAt: string | null;
+}
+
+export interface SharedPlaceResponse extends SharedBase {
+  sharedPlaceId: number;
+  place: PlaceResponse;
+}
+
+export interface SharedCourseResponse extends SharedBase {
+  sharedCourseId: number;
+  course: CourseResponse;
+}
+
+export type UnshareScope = 'SHARED_ONLY' | 'PERSONAL_AND_SHARED';

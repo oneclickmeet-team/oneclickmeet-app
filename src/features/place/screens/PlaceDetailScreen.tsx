@@ -4,8 +4,10 @@ import { ActivityIndicator, Alert, Linking, StyleSheet, Text, View } from 'react
 import { Button } from '@/components/Button';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { Screen } from '@/components/Screen';
+import { useCurrentCouple, useSharePlace } from '@/features/couple/hooks/useCouple';
 import { colors, fontSize, radius, spacing } from '@/theme';
 import type { PlaceId } from '@/types/ids';
+import type { Place } from '@/types/model';
 
 import { useDeletePlace, usePlace } from '../hooks/usePlaces';
 
@@ -64,7 +66,6 @@ export function PlaceDetailScreen() {
           <Text style={styles.warn}>위치 정보가 없어서 코스 추천 기준 장소로는 쓸 수 없어요.</Text>
         )}
         <Text style={styles.meta}>저장한 날 {formatDate(p.createdAt)}</Text>
-        {p.sharedPlaceId ? <Text style={styles.meta}>상대와 공유 중</Text> : null}
       </View>
 
       {p.sourceUrl ? (
@@ -75,14 +76,45 @@ export function PlaceDetailScreen() {
         />
       ) : null}
 
-      <View style={styles.card}>
-        <Text style={styles.section}>메모 · 공유</Text>
-        <Text style={styles.sub}>M4 이후에 붙여요.</Text>
-      </View>
+      <ShareBox placeId={p.id} sharedPlaceId={p.sharedPlaceId} />
 
       <ErrorBanner error={remove.error} />
       <Button title="보관함에서 삭제" variant="text" loading={remove.isPending} onPress={confirmDelete} />
     </Screen>
+  );
+}
+
+// 연결된 상대와 공유(S02). 이미 공유 중이면 공동 보관함으로 가는 버튼을 보여 준다.
+function ShareBox({ placeId, sharedPlaceId }: { placeId: Place['id']; sharedPlaceId: Place['sharedPlaceId'] }) {
+  const router = useRouter();
+  const { couple } = useCurrentCouple();
+  const share = useSharePlace();
+  if (!couple) return null;
+  const name = couple.partner?.name ?? '상대';
+
+  if (sharedPlaceId !== null) {
+    return (
+      <View style={styles.shareBox}>
+        <Text style={styles.shareText}>{name}와 공유 중이에요.</Text>
+        <Button
+          title="우리 보관함에서 보기"
+          variant="secondary"
+          onPress={() => router.push(`/couples/${couple.id}/places/${sharedPlaceId}`)}
+        />
+      </View>
+    );
+  }
+  if (couple.status !== 'ACTIVE') return null;
+  return (
+    <>
+      <ErrorBanner error={share.error} />
+      <Button
+        title={`${name}와 공유하기`}
+        variant="secondary"
+        loading={share.isPending}
+        onPress={() => share.mutate({ coupleId: couple.id, placeId })}
+      />
+    </>
   );
 }
 
@@ -98,5 +130,6 @@ const styles = StyleSheet.create({
   sub: { fontSize: fontSize.body, color: colors.textSub },
   warn: { fontSize: fontSize.caption, color: colors.warning },
   meta: { fontSize: fontSize.caption, color: colors.textSub },
-  section: { fontSize: fontSize.caption, fontWeight: '700', color: colors.textSub },
+  shareBox: { backgroundColor: colors.primarySoft, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
+  shareText: { fontSize: fontSize.caption, fontWeight: '700', color: colors.primary },
 });

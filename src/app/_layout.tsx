@@ -72,6 +72,15 @@ function RootNavigator() {
         <Stack.Screen name="courses/result" options={{ headerShown: true, title: '추천 결과' }} />
         <Stack.Screen name="courses/edit" options={{ headerShown: true, title: '코스 편집' }} />
         <Stack.Screen name="courses/[id]" options={{ headerShown: true, title: '코스' }} />
+        <Stack.Screen name="couple" options={{ headerShown: true, title: '커플 연결' }} />
+        <Stack.Screen
+          name="couples/[coupleId]/places/[sharedPlaceId]"
+          options={{ headerShown: true, title: '우리 장소' }}
+        />
+        <Stack.Screen
+          name="couples/[coupleId]/courses/[sharedCourseId]"
+          options={{ headerShown: true, title: '우리 코스' }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="(auth)" />
